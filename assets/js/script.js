@@ -166,16 +166,74 @@
     openEdges.add(edgeKey(a, b));
   }
 
-  function createOpenGrid() {
-    const edges = new Set();
+  function addExtraPassages(openEdges, seed, count) {
+    // Tambahkan beberapa jalur alternatif agar level awal lebih mudah,
+    // tetapi tetap memiliki tata letak labirin yang berbeda.
+    const random = seededRandom(seed ^ 0x9e3779b9);
+    const closedEdges = [];
+
     for (let r = 0; r < SIZE; r += 1) {
       for (let c = 0; c < SIZE; c += 1) {
         const cell = { r, c };
-        if (c < SIZE - 1) addOpenEdge(edges, cell, { r, c: c + 1 });
-        if (r < SIZE - 1) addOpenEdge(edges, cell, { r: r + 1, c });
+
+        if (c < SIZE - 1) {
+          const right = { r, c: c + 1 };
+          if (!openEdges.has(edgeKey(cell, right))) {
+            closedEdges.push([cell, right]);
+          }
+        }
+
+        if (r < SIZE - 1) {
+          const down = { r: r + 1, c };
+          if (!openEdges.has(edgeKey(cell, down))) {
+            closedEdges.push([cell, down]);
+          }
+        }
       }
     }
-    return edges;
+
+    // Fisher-Yates shuffle deterministik berdasarkan seed level.
+    for (let index = closedEdges.length - 1; index > 0; index -= 1) {
+      const swapIndex = Math.floor(random() * (index + 1));
+      [closedEdges[index], closedEdges[swapIndex]] = [
+        closedEdges[swapIndex],
+        closedEdges[index],
+      ];
+    }
+
+    closedEdges.slice(0, Math.max(0, count)).forEach(([from, to]) => {
+      addOpenEdge(openEdges, from, to);
+    });
+
+    return openEdges;
+  }
+
+  function extraPassageCount(level) {
+    // Semakin tinggi level, semakin sedikit jalur alternatif yang dibuka.
+    const passagePlan = [
+      20,
+      17,
+      14,
+      11, // Level 1-4: pemanasan
+      8,
+      7,
+      6,
+      5, // Level 5-8: tantangan dasar
+      4,
+      4,
+      3,
+      3,
+      2,
+      2, // Level 9-14: tantangan menengah
+      1,
+      1,
+      0,
+      0,
+      0,
+      0, // Level 15-20: tantangan lanjutan
+    ];
+
+    return passagePlan[level - 1] ?? 0;
   }
 
   function createMaze(seed) {
@@ -268,8 +326,10 @@
   }
 
   function createLevel(level) {
-    const openEdges =
-      level <= 4 ? createOpenGrid() : createMaze(8147 + level * 7919);
+    // Setiap level memakai seed berbeda sehingga bentuk labirinnya tidak sama.
+    const seed = 8147 + level * 7919;
+    const openEdges = createMaze(seed);
+    addExtraPassages(openEdges, seed + 104729, extraPassageCount(level));
     const shortestPath = findPath(openEdges);
     return {
       number: level,
@@ -602,6 +662,20 @@
     return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
   }
 
+  function scrollToBoard() {
+    if (!dom.mazeGrid) return;
+
+    const prefersReducedMotion =
+      window.matchMedia &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    dom.mazeGrid.scrollIntoView({
+      behavior: prefersReducedMotion ? "auto" : "smooth",
+      block: "center",
+      inline: "nearest",
+    });
+  }
+
   async function runProgram() {
     if (state.isRunning || state.isFinished) return;
     if (!state.commands.length) {
@@ -627,6 +701,7 @@
     state.stopRequested = false;
     renderBoard();
     updateMissionProgress();
+    scrollToBoard();
     setRunningUI(true);
 
     let stoppedByWall = false;

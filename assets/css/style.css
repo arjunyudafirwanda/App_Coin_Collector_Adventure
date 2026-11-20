@@ -2553,3 +2553,8 @@ input:focus-visible {
     border-radius: 5px;
   }
 }
+
+.board-panel,
+.maze-grid {
+  scroll-margin-top: 100px;
+}
