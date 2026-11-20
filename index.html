@@ -1,0 +1,576 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#101b3d" />
+    <meta
+      name="description"
+      content="Coin Collector Adventure — permainan edukasi coding untuk anak SD. Susun instruksi, kumpulkan koin, dan selesaikan 20 level petualangan labirin."
+    />
+    <meta name="author" content="Arjun Yuda Firwanda" />
+    <title>Coin Collector Adventure | Coding for Kids</title>
+    <link rel="icon" type="image/svg+xml" href="assets/images/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+    />
+    <link rel="stylesheet" href="assets/css/style.css" />
+  </head>
+  <body>
+    <header class="site-header" id="siteHeader">
+      <div class="header-inner">
+        <a
+          class="brand"
+          href="#home"
+          aria-label="Coin Collector Adventure beranda"
+        >
+          <img src="assets/images/logo.svg" alt="" class="brand-logo" />
+          <span class="brand-copy">
+            <strong>COIN COLLECTOR</strong>
+            <small>ADVENTURE</small>
+          </span>
+        </a>
+
+        <div class="header-right" id="headerRight" hidden>
+          <div class="player-chip">
+            <span class="player-avatar"
+              ><i class="fa-solid fa-user-astronaut" aria-hidden="true"></i
+            ></span>
+            <span class="player-chip-copy">
+              <small>PLAYER</small>
+              <strong id="headerPlayerName">Explorer</strong>
+            </span>
+          </div>
+          <div class="header-stat level-stat">
+            <span class="stat-icon"
+              ><i class="fa-solid fa-flag" aria-hidden="true"></i
+            ></span>
+            <span
+              ><small>LEVEL</small
+              ><strong id="headerLevel">01 / 20</strong></span
+            >
+          </div>
+          <div class="header-stat score-stat">
+            <span class="stat-icon"
+              ><i class="fa-solid fa-star" aria-hidden="true"></i
+            ></span>
+            <span><small>POIN</small><strong id="headerScore">0</strong></span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main id="home">
+      <section class="welcome-screen" id="welcomeScreen">
+        <div class="welcome-orb orb-one"></div>
+        <div class="welcome-orb orb-two"></div>
+        <div class="welcome-layout page-shell">
+          <div class="welcome-copy">
+            <div class="eyebrow-pill">
+              <span class="eyebrow-dot"></span> A CODING ADVENTURE FOR KIDS
+            </div>
+            <h1>Think. Code.<br /><span>Collect!</span></h1>
+            <p class="welcome-lead">
+              Bantu Milo menjelajahi labirin, mengumpulkan koin, dan menemukan
+              peti harta karun. Susun instruksi langkah demi langkah untuk
+              menyelesaikan setiap tantangan!
+            </p>
+            <div class="welcome-benefits">
+              <div>
+                <span class="benefit-icon blue"
+                  ><i class="fa-solid fa-route"></i></span
+                ><span
+                  ><strong>20 Level</strong
+                  ><small>Tantangan bertahap</small></span
+                >
+              </div>
+              <div>
+                <span class="benefit-icon gold"
+                  ><i class="fa-solid fa-coins"></i></span
+                ><span
+                  ><strong>Kumpulkan Koin</strong
+                  ><small>Raih poin petualangan</small></span
+                >
+              </div>
+              <div>
+                <span class="benefit-icon purple"
+                  ><i class="fa-solid fa-code"></i></span
+                ><span
+                  ><strong>Belajar Coding</strong
+                  ><small>Urutan dan pengulangan</small></span
+                >
+              </div>
+            </div>
+          </div>
+
+          <div class="welcome-card">
+            <div class="welcome-card-top">
+              <span class="mini-brand-mark"
+                ><i class="fa-solid fa-compass"></i
+              ></span>
+              <span class="welcome-card-label">YOUR ADVENTURE STARTS HERE</span>
+            </div>
+            <div class="welcome-illustration" aria-hidden="true">
+              <div class="illustration-spark spark-a">✦</div>
+              <div class="illustration-spark spark-b">✧</div>
+              <div class="illustration-island">
+                <div class="illustration-path"></div>
+                <div class="illustration-tree tree-a"><span></span></div>
+                <div class="illustration-tree tree-b"><span></span></div>
+                <div class="illustration-coin coin-a">
+                  <i class="fa-solid fa-coins"></i>
+                </div>
+                <div class="illustration-coin coin-b">
+                  <i class="fa-solid fa-coins"></i>
+                </div>
+                <div class="illustration-chest">
+                  <i class="fa-solid fa-box-open"></i>
+                </div>
+                <div class="illustration-milo">
+                  <i class="fa-solid fa-user-astronaut"></i>
+                </div>
+              </div>
+            </div>
+            <form id="startForm" class="start-form">
+              <label for="playerNameInput"
+                >Siapa nama petualang hari ini?</label
+              >
+              <div class="name-input-wrap">
+                <i class="fa-regular fa-user" aria-hidden="true"></i>
+                <input
+                  id="playerNameInput"
+                  name="playerName"
+                  type="text"
+                  maxlength="20"
+                  minlength="2"
+                  autocomplete="nickname"
+                  placeholder="Masukkan username kamu"
+                  required
+                />
+              </div>
+              <p class="input-hint">
+                Gunakan nama 2–20 karakter. Progres tersimpan di perangkat ini.
+              </p>
+              <button class="btn btn-primary btn-start" type="submit">
+                <span id="startButtonText">Mulai Petualangan</span>
+                <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+              </button>
+              <p class="privacy-note">
+                <i class="fa-solid fa-shield-heart" aria-hidden="true"></i>
+                Tidak perlu membuat akun atau memasukkan email.
+              </p>
+              <p class="form-error" id="startError" role="alert" hidden></p>
+            </form>
+          </div>
+        </div>
+        <div class="welcome-bottom page-shell">
+          <span
+            ><i class="fa-solid fa-graduation-cap" aria-hidden="true"></i> LEARN
+            THROUGH PLAY</span
+          >
+          <span>SEQUENCING <b>·</b> LOGIC <b>·</b> PROBLEM SOLVING</span>
+        </div>
+      </section>
+
+      <section class="game-app page-shell" id="gameApp" hidden>
+        <div class="game-heading">
+          <div>
+            <div class="section-kicker">LET'S EXPLORE</div>
+            <h2>Petualangan <span>dimulai!</span></h2>
+            <p>
+              Susun langkah Milo, ambil ketiga koin, lalu capai peti harta
+              karun.
+            </p>
+          </div>
+          <div class="heading-actions">
+            <button
+              type="button"
+              class="btn btn-soft btn-small"
+              id="changePlayerButton"
+            >
+              <i class="fa-solid fa-users" aria-hidden="true"></i> Ganti Pemain
+            </button>
+            <button
+              type="button"
+              class="btn btn-soft btn-small"
+              id="resetLevelButton"
+            >
+              <i class="fa-solid fa-rotate-left" aria-hidden="true"></i> Ulang
+              Level
+            </button>
+          </div>
+        </div>
+
+        <div class="game-layout">
+          <section class="board-panel panel" aria-labelledby="boardTitle">
+            <div class="panel-heading board-heading">
+              <div>
+                <span class="panel-overline">THE TREASURE MAP</span>
+                <h3 id="boardTitle">Peta Labirin</h3>
+              </div>
+              <div class="board-level-pill">
+                <i class="fa-solid fa-map-location-dot" aria-hidden="true"></i
+                ><span id="boardLevelLabel">LEVEL 01</span>
+              </div>
+            </div>
+
+            <div class="mission-strip">
+              <span class="mission-icon"
+                ><i class="fa-solid fa-bullseye" aria-hidden="true"></i
+              ></span>
+              <div>
+                <strong>Misi level ini</strong
+                ><small>Ambil 3 koin <b>→</b> temukan peti harta karun</small>
+              </div>
+              <div class="coin-progress" aria-label="Koin terkumpul">
+                <span id="coinCount">0</span
+                ><i class="fa-solid fa-coins" aria-hidden="true"></i
+                ><small>/ 3</small>
+              </div>
+            </div>
+
+            <div class="maze-stage">
+              <div class="maze-frame">
+                <div
+                  class="maze-grid"
+                  id="mazeGrid"
+                  role="img"
+                  aria-label="Peta labirin enam kali enam"
+                ></div>
+              </div>
+              <div class="map-legend">
+                <span><i class="legend-dot player-dot"></i> Milo</span>
+                <span
+                  ><i class="legend-dot coin-dot"
+                    ><i class="fa-solid fa-coins"></i
+                  ></i>
+                  Koin</span
+                >
+                <span
+                  ><i class="legend-dot treasure-dot"
+                    ><i class="fa-solid fa-box-open"></i
+                  ></i>
+                  Peti harta</span
+                >
+              </div>
+            </div>
+
+            <div class="board-stats">
+              <div class="board-stat">
+                <span class="board-stat-icon steps-icon"
+                  ><i
+                    class="fa-solid fa-shoe-prints"
+                    aria-hidden="true"
+                  ></i></span
+                ><span
+                  ><small>LANGKAH</small
+                  ><strong id="stepsCount">0</strong></span
+                >
+              </div>
+              <div class="board-stat">
+                <span class="board-stat-icon coin-icon"
+                  ><i class="fa-solid fa-coins" aria-hidden="true"></i></span
+                ><span
+                  ><small>KOIN</small
+                  ><strong id="boardCoinCount">0 / 3</strong></span
+                >
+              </div>
+              <div class="board-stat">
+                <span class="board-stat-icon target-icon"
+                  ><i class="fa-solid fa-trophy" aria-hidden="true"></i></span
+                ><span
+                  ><small>PROGRES</small
+                  ><strong id="progressPercent">0%</strong></span
+                >
+              </div>
+            </div>
+            <div class="progress-track"><span id="progressBar"></span></div>
+          </section>
+
+          <div class="side-column">
+            <section class="mission-panel panel" aria-labelledby="missionTitle">
+              <div class="panel-heading compact-heading">
+                <div>
+                  <span class="panel-overline">YOUR OBJECTIVE</span>
+                  <h3 id="missionTitle">Misi Petualangan</h3>
+                </div>
+                <span class="mission-badge"
+                  ><i class="fa-solid fa-star" aria-hidden="true"></i> MAX 350
+                  PTS</span
+                >
+              </div>
+              <p class="mission-description" id="missionDescription">
+                Rencanakan jalur terbaik untuk mengambil semua koin dan mencapai
+                peti harta.
+              </p>
+              <div class="mission-checklist">
+                <div class="mission-check" id="coinCheck">
+                  <span class="check-circle"
+                    ><i class="fa-solid fa-coins"></i></span
+                  ><span>Ambil semua 3 koin</span
+                  ><i class="fa-solid fa-circle-check check-state"></i>
+                </div>
+                <div class="mission-check" id="treasureCheck">
+                  <span class="check-circle"
+                    ><i class="fa-solid fa-box-open"></i></span
+                  ><span>Capai peti harta karun</span
+                  ><i class="fa-solid fa-circle-check check-state"></i>
+                </div>
+              </div>
+            </section>
+
+            <section class="code-panel panel" aria-labelledby="codeTitle">
+              <div class="panel-heading compact-heading">
+                <div>
+                  <span class="panel-overline">BUILD YOUR ALGORITHM</span>
+                  <h3 id="codeTitle">Susun Instruksi</h3>
+                </div>
+                <span class="code-symbol">&lt;/&gt;</span>
+              </div>
+              <p class="code-intro">
+                Pilih arah untuk menambahkan blok perintah ke dalam program
+                Milo.
+              </p>
+
+              <div class="direction-pad" aria-label="Pilihan arah gerak">
+                <button
+                  type="button"
+                  class="direction-button direction-up"
+                  data-direction="up"
+                  aria-label="Tambah perintah Atas"
+                >
+                  <i class="fa-solid fa-arrow-up"></i><span>Atas</span>
+                </button>
+                <button
+                  type="button"
+                  class="direction-button direction-left"
+                  data-direction="left"
+                  aria-label="Tambah perintah Kiri"
+                >
+                  <i class="fa-solid fa-arrow-left"></i><span>Kiri</span>
+                </button>
+                <button
+                  type="button"
+                  class="direction-button direction-down"
+                  data-direction="down"
+                  aria-label="Tambah perintah Bawah"
+                >
+                  <i class="fa-solid fa-arrow-down"></i><span>Bawah</span>
+                </button>
+                <button
+                  type="button"
+                  class="direction-button direction-right"
+                  data-direction="right"
+                  aria-label="Tambah perintah Kanan"
+                >
+                  <i class="fa-solid fa-arrow-right"></i><span>Kanan</span>
+                </button>
+              </div>
+
+              <div class="repeat-controls">
+                <span class="repeat-label"
+                  ><i class="fa-solid fa-repeat" aria-hidden="true"></i> BLOK
+                  PENGULANGAN</span
+                >
+                <div class="repeat-buttons">
+                  <button type="button" class="repeat-button" data-repeat="2">
+                    Ulangi <strong>×2</strong>
+                  </button>
+                  <button type="button" class="repeat-button" data-repeat="3">
+                    Ulangi <strong>×3</strong>
+                  </button>
+                </div>
+                <small
+                  >Ulangi akan menjalankan kembali arah terakhir yang
+                  ditambahkan.</small
+                >
+              </div>
+
+              <div class="program-heading">
+                <div>
+                  <strong>Program Milo</strong
+                  ><span id="commandCount">0 blok</span>
+                </div>
+                <button
+                  type="button"
+                  class="text-button"
+                  id="clearProgramButton"
+                >
+                  <i class="fa-regular fa-trash-can" aria-hidden="true"></i>
+                  Hapus semua
+                </button>
+              </div>
+              <div class="program-list" id="programList" aria-live="polite">
+                <div class="program-empty" id="programEmpty">
+                  <i class="fa-solid fa-arrow-pointer" aria-hidden="true"></i
+                  ><span>Pilih blok arah untuk mulai menyusun program.</span>
+                </div>
+              </div>
+
+              <div class="program-actions">
+                <button
+                  type="button"
+                  class="btn btn-soft undo-button"
+                  id="undoButton"
+                  disabled
+                >
+                  <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>
+                  Undo
+                </button>
+                <button type="button" class="btn btn-run" id="runButton">
+                  <i class="fa-solid fa-play" aria-hidden="true"></i> Jalankan
+                  Program
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-stop"
+                  id="stopButton"
+                  hidden
+                >
+                  <i class="fa-solid fa-stop" aria-hidden="true"></i> Hentikan
+                </button>
+              </div>
+              <p class="run-note">
+                <i class="fa-solid fa-lightbulb" aria-hidden="true"></i> Milo
+                selalu mulai dari titik awal setiap kali program dijalankan.
+              </p>
+            </section>
+          </div>
+        </div>
+
+        <section class="level-section panel" aria-labelledby="levelTitle">
+          <div class="level-section-heading">
+            <div>
+              <span class="panel-overline">YOUR JOURNEY</span>
+              <h3 id="levelTitle">Peta Level</h3>
+              <p>Selesaikan tantangan untuk membuka level berikutnya.</p>
+            </div>
+            <div class="level-progress-summary">
+              <strong id="completedLevelCount">0 / 20</strong
+              ><small>LEVEL SELESAI</small>
+            </div>
+          </div>
+          <div
+            class="level-grid"
+            id="levelGrid"
+            aria-label="Daftar 20 level"
+          ></div>
+        </section>
+
+        <section class="learning-section" aria-label="Panduan bermain">
+          <div class="learning-heading">
+            <span class="learning-heading-icon"
+              ><i class="fa-solid fa-graduation-cap" aria-hidden="true"></i
+            ></span>
+            <div>
+              <span class="panel-overline">LEARN WHILE PLAYING</span>
+              <h3>Belajar Sambil Bertualang</h3>
+            </div>
+          </div>
+          <div class="learning-cards">
+            <article class="learning-card">
+              <span class="learning-number">01</span>
+              <div>
+                <h4>Sequencing</h4>
+                <p>
+                  Susun instruksi dalam urutan yang tepat agar Milo bergerak
+                  menuju tujuan.
+                </p>
+              </div>
+            </article>
+            <article class="learning-card">
+              <span class="learning-number">02</span>
+              <div>
+                <h4>Direction & Logic</h4>
+                <p>
+                  Gunakan Atas, Bawah, Kiri, dan Kanan untuk menentukan langkah
+                  pada peta.
+                </p>
+              </div>
+            </article>
+            <article class="learning-card">
+              <span class="learning-number">03</span>
+              <div>
+                <h4>Loops & Debugging</h4>
+                <p>
+                  Gunakan pengulangan untuk menghemat blok, lalu perbaiki
+                  program ketika jalurnya belum tepat.
+                </p>
+              </div>
+            </article>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-inner page-shell">
+        <a class="footer-brand" href="#home"
+          ><img src="assets/images/logo.svg" alt="" /><span
+            >COIN COLLECTOR ADVENTURE</span
+          ></a
+        >
+        <p>
+          Designed & Developed by <strong>Arjun Yuda Firwanda</strong> · ©
+          <span id="currentYear"></span> All rights reserved.
+        </p>
+        <span class="footer-tagline">LEARN · CODE · EXPLORE</span>
+      </div>
+    </footer>
+
+    <div class="toast" id="toast" role="status" aria-live="polite">
+      <span class="toast-icon"><i class="fa-solid fa-circle-info"></i></span
+      ><span id="toastMessage">Informasi</span>
+    </div>
+
+    <div class="modal-backdrop" id="completionModal" hidden>
+      <section
+        class="completion-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="completionTitle"
+      >
+        <div class="completion-sparkles" aria-hidden="true">✦　✧　✦</div>
+        <div class="completion-trophy">
+          <i class="fa-solid fa-trophy" aria-hidden="true"></i>
+        </div>
+        <span class="completion-kicker">LEVEL COMPLETED</span>
+        <h2 id="completionTitle">
+          Kerja hebat, <span id="completionPlayerName">Explorer</span>!
+        </h2>
+        <p class="completion-description">
+          Kamu berhasil mengumpulkan semua koin dan menemukan peti harta karun.
+        </p>
+        <div class="completion-stats">
+          <div>
+            <strong id="earnedPoints">+0</strong><small>POIN DIDAPAT</small>
+          </div>
+          <div>
+            <strong id="completionSteps">0</strong><small>LANGKAH</small>
+          </div>
+          <div>
+            <strong id="completionCoins">3 / 3</strong><small>KOIN</small>
+          </div>
+        </div>
+        <div class="completion-actions">
+          <button type="button" class="btn btn-primary" id="nextLevelButton">
+            Level Berikutnya
+            <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+          </button>
+          <button type="button" class="btn btn-soft" id="closeCompletionButton">
+            Lihat Peta Level
+          </button>
+        </div>
+      </section>
+    </div>
+
+    <script src="assets/js/script.js"></script>
+  </body>
+</html>
