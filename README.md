@@ -1,82 +1,53 @@
-# Coin Collector Adventure
+# Coin Collector Adventure — v1.5
 
-**Coin Collector Adventure** adalah permainan edukasi coding berbasis web untuk peserta didik sekolah dasar (rekomendasi usia 8–12 tahun). Pemain membantu Milo menjelajahi labirin, mengumpulkan tiga koin, dan mencapai peti harta karun dengan menyusun urutan instruksi.
+Permainan edukasi coding untuk anak SD. Pemain membantu Milo menyusuri labirin, mengambil tiga koin, lalu mencapai peti harta karun dengan menyusun instruksi arah dan blok pengulangan.
 
-## Fitur utama
+## Struktur proyek
 
-- Username pemain dengan dukungan beberapa profil pada satu browser.
-- 20 level bertahap dengan peta labirin berukuran 6 × 6.
-- Blok instruksi arah: Atas, Bawah, Kiri, dan Kanan.
-- Blok pengulangan ×2 dan ×3 yang mengulangi arah terakhir.
-- Animasi gerakan Milo dan umpan balik ketika menemukan koin atau terhalang dinding.
-- Sistem poin, progres, level terbuka, dan riwayat level yang selesai.
-- Progres tersimpan secara lokal menggunakan `localStorage`.
-- Tombol undo, hapus semua instruksi, hentikan program, dan ulang level.
-- Tampilan responsif untuk desktop, tablet, dan ponsel.
-- Copyright dinamis pada footer.
+```text
+Coin_Collector_Adventure_v1.5/
+├── index.html
+├── README.md
+└── assets/
+    ├── css/
+    │   └── style.css
+    ├── js/
+    │   └── script.js
+    └── images/
+        ├── favicon.svg
+        └── logo.svg
+```
+
+Seluruh styling sudah disatukan di `assets/css/style.css`. Tidak ada file `style-patch.css`.
+
+## Fitur pada v1.5
+
+1. **Auto-scroll ke papan labirin.** Ketika tombol **Jalankan Program** ditekan, halaman otomatis menggulir ke panel Peta Labirin. Posisi scroll memperhitungkan tinggi header yang sticky.
+2. **Username pemain.** Pemain harus memasukkan username 2–20 karakter sebelum mulai. Username yang sama (tidak membedakan huruf besar/kecil dan spasi berulang) akan membuka profil yang sama.
+3. **Profil dan progres terpisah.** Setiap username memiliki skor, level yang terbuka, level terakhir, level yang telah selesai, serta hitungan kesalahan sendiri. Pemain baru mulai dari Level 1; pemain lama melanjutkan level terakhir miliknya.
+4. **Popup penalti setelah tiga kegagalan.** Setiap tiga kali program gagal dijalankan pada level yang sama, total skor dikurangi 20 poin. Jika poin tersisa kurang dari 20, pengurangan dibatasi sampai 0 agar skor tidak negatif. Popup menampilkan skor sebelum, pengurangan, dan skor setelah penalti.
+5. **Kesalahan dihitung dengan jelas.** Menabrak dinding/keluar area, mencapai peti sebelum mengambil semua koin, atau kehabisan instruksi sebelum mencapai peti dihitung sebagai satu kegagalan per proses menjalankan program. Menekan **Hentikan** secara manual tidak dihitung.
+6. **Penyimpanan lokal.** Data disimpan pada `localStorage` browser/perangkat yang digunakan. Tidak memerlukan akun, email, server, atau database.
+7. **Responsif dan aksesibel.** Layout menyesuaikan desktop, tablet, dan ponsel; tombol memiliki state interaksi, modal dapat ditutup dengan tombol atau tombol Escape, dan animasi mengikuti preferensi `prefers-reduced-motion` perangkat.
 
 ## Cara menjalankan
 
-1. Ekstrak folder proyek.
-2. Buka folder `coin-collector-adventure-v2` di Visual Studio Code.
-3. Jalankan `index.html` menggunakan ekstensi Live Server, atau buka file tersebut langsung di browser.
-4. Masukkan username, lalu pilih **Mulai Petualangan**.
+- Ekstrak ZIP.
+- Buka folder proyek di Visual Studio Code.
+- Jalankan `index.html` menggunakan ekstensi Live Server, atau buka langsung melalui browser modern.
+- Pastikan perangkat terhubung ke internet untuk memuat Google Fonts dan Font Awesome dari CDN. Game dan file inti tetap tersedia secara lokal.
 
-Aplikasi ini tidak membutuhkan backend, database, maupun API key. Font Google Fonts dan Font Awesome dimuat dari CDN sehingga koneksi internet diperlukan agar font dan ikon eksternal tampil sempurna. Permainan tetap memakai HTML, CSS, dan JavaScript di sisi browser.
+## Catatan progres pemain
 
-## Cara bermain
+Progres setiap pemain disimpan di browser yang sama. Contohnya:
 
-1. Masukkan username.
-2. Perhatikan peta 6 × 6. Milo mulai dari kiri atas, sedangkan peti harta berada di kanan bawah.
-3. Tambahkan blok Atas, Bawah, Kiri, atau Kanan ke daftar **Program Milo**.
-4. Untuk menggunakan pengulangan, tambahkan satu blok arah terlebih dahulu, lalu pilih **Ulangi ×2** atau **Ulangi ×3**. Blok tersebut mengulang arah terakhir sebanyak dua atau tiga langkah tambahan.
-5. Tekan **Jalankan Program**. Milo selalu memulai dari titik awal setiap kali program dijalankan.
-6. Kumpulkan ketiga koin sebelum mencapai peti harta.
-7. Selesaikan level untuk memperoleh poin dan membuka level berikutnya.
+- `MiloA` mencapai Level 3, lalu memilih **Ganti Pemain**.
+- `MiloB` yang sudah mencapai Level 7 akan kembali ke Level 7 beserta skor dan progres miliknya.
+- Username baru, misalnya `MiloC`, akan mulai dari Level 1 dengan skor 0.
+- Saat kembali mengetik `MiloA`, game melanjutkan progres `MiloA`, bukan progres pemain lain.
 
-### Aturan poin
+Jangan menghapus data situs/browser atau menggunakan mode incognito apabila ingin mempertahankan progres lokal. Menghapus data situs dapat menghapus seluruh profil pada browser tersebut.
 
-Pada penyelesaian pertama setiap level, pemain memperoleh:
+## Catatan penalti
 
-- 50 poin untuk setiap koin (maksimal 150 poin).
-- 100 poin karena mencapai peti harta.
-- Bonus efisiensi hingga 100 poin. Bonus berkurang 10 poin untuk setiap langkah di atas jalur terpendek yang dihitung oleh peta.
-
-Dengan demikian, skor maksimum untuk penyelesaian pertama satu level adalah **350 poin**. Level yang pernah diselesaikan tetap dapat dimainkan kembali untuk latihan, tetapi tidak memberikan poin tambahan.
-
-## Penyimpanan data
-
-Username, skor, level terbuka, dan level yang telah diselesaikan disimpan di `localStorage` browser berdasarkan username. Data tidak dikirim ke server. Progres tersedia pada browser dan perangkat yang sama; data tidak otomatis tersinkronisasi ke perangkat lain. Menghapus data situs/browser dapat menghapus progres permainan.
-
-## Struktur folder
-
-```text
-coin-collector-adventure-v2/
-├── index.html
-├── README.md
-├── assets/
-│   ├── css/
-│   │   └── style.css
-│   ├── js/
-│   │   └── script.js
-│   └── images/
-│       ├── favicon.svg
-│       └── logo.svg
-└── docs/
-    └── panduan-guru.md
-```
-
-## Teknologi
-
-- HTML5
-- CSS3 (responsive layout, CSS Grid, Flexbox, transitions, dan keyframes)
-- Vanilla JavaScript
-- Browser `localStorage`
-- Font Awesome dan Google Fonts melalui CDN
-
-## Pengembang
-
-**Arjun Yuda Firwanda**  
-Coin Collector Adventure · Educational Coding Game
-
-© 2026 Arjun Yuda Firwanda. All rights reserved.
+Hitungan kesalahan disimpan terpisah untuk setiap pemain dan level. Dua kegagalan pertama hanya memberikan pemberitahuan. Pada kegagalan ketiga, skor dikurangi maksimal 20 poin dan penghitung kesalahan level tersebut direset. Setelah pemain berhasil menyelesaikan level, penghitung kesalahan level itu juga direset.

@@ -5,9 +5,14 @@
   const $$ = (selector, scope = document) => [
     ...scope.querySelectorAll(selector),
   ];
+
   const SIZE = 6;
   const STORAGE_KEY = "coin-collector-adventure-v2";
   const TOTAL_LEVELS = 20;
+  const PENALTY_AFTER_MISTAKES = 3;
+  const PENALTY_POINTS = 20;
+  const MAX_COMMANDS = 90;
+
   const DIRECTIONS = {
     up: { label: "Atas", icon: "fa-arrow-up", dr: -1, dc: 0 },
     down: { label: "Bawah", icon: "fa-arrow-down", dr: 1, dc: 0 },
@@ -17,6 +22,7 @@
   const DIRECTION_ORDER = ["right", "down", "left", "up"];
 
   const dom = {
+    siteHeader: $("#siteHeader"),
     welcomeScreen: $("#welcomeScreen"),
     gameApp: $("#gameApp"),
     headerRight: $("#headerRight"),
@@ -56,6 +62,13 @@
     completionCoins: $("#completionCoins"),
     nextLevelButton: $("#nextLevelButton"),
     closeCompletionButton: $("#closeCompletionButton"),
+    penaltyModal: $("#penaltyModal"),
+    penaltyPlayerName: $("#penaltyPlayerName"),
+    penaltyScoreBefore: $("#penaltyScoreBefore"),
+    penaltyDeduction: $("#penaltyDeduction"),
+    penaltyScoreAfter: $("#penaltyScoreAfter"),
+    penaltyDescription: $("#penaltyDescription"),
+    closePenaltyButton: $("#closePenaltyButton"),
     currentYear: $("#currentYear"),
   };
 
@@ -76,18 +89,118 @@
 
   let toastTimer = null;
 
+  function toSafeInteger(
+    value,
+    fallback = 0,
+    min = 0,
+    max = Number.MAX_SAFE_INTEGER,
+  ) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) return fallback;
+    return Math.min(max, Math.max(min, Math.floor(number)));
+  }
+
+  function createProfile(name) {
+    return {
+      name,
+      score: 0,
+      unlockedLevel: 1,
+      currentLevel: 1,
+      completedLevels: {},
+      mistakesByLevel: {},
+      totalPenaltyPoints: 0,
+      createdAt: new Date().toISOString(),
+    };
+  }
+
+  function normalizeProfile(rawProfile, fallbackName) {
+    const source =
+      rawProfile && typeof rawProfile === "object" ? rawProfile : {};
+    const profile = {
+      ...createProfile(
+        typeof source.name === "string" && source.name.trim()
+          ? source.name.trim().slice(0, 20)
+          : fallbackName,
+      ),
+      ...source,
+    };
+
+    profile.name = String(profile.name || fallbackName || "Explorer")
+      .trim()
+      .slice(0, 20);
+    profile.score = toSafeInteger(profile.score, 0);
+    profile.unlockedLevel = toSafeInteger(
+      profile.unlockedLevel,
+      1,
+      1,
+      TOTAL_LEVELS,
+    );
+    const savedCurrentLevel =
+      source.currentLevel !== undefined && source.currentLevel !== null
+        ? source.currentLevel
+        : source.unlockedLevel;
+    profile.currentLevel = toSafeInteger(
+      savedCurrentLevel,
+      profile.unlockedLevel,
+      1,
+      profile.unlockedLevel,
+    );
+    profile.completedLevels =
+      profile.completedLevels && typeof profile.completedLevels === "object"
+        ? profile.completedLevels
+        : {};
+    profile.mistakesByLevel =
+      profile.mistakesByLevel && typeof profile.mistakesByLevel === "object"
+        ? profile.mistakesByLevel
+        : {};
+
+    for (const [levelKey, mistakes] of Object.entries(
+      profile.mistakesByLevel,
+    )) {
+      const level = Number(levelKey);
+      if (!Number.isInteger(level) || level < 1 || level > TOTAL_LEVELS) {
+        delete profile.mistakesByLevel[levelKey];
+      } else {
+        profile.mistakesByLevel[levelKey] = toSafeInteger(
+          mistakes,
+          0,
+          0,
+          PENALTY_AFTER_MISTAKES - 1,
+        );
+      }
+    }
+
+    profile.totalPenaltyPoints = toSafeInteger(profile.totalPenaltyPoints, 0);
+    if (!profile.createdAt) profile.createdAt = new Date().toISOString();
+    return profile;
+  }
+
   function readStore() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return { activeProfileKey: null, profiles: {} };
       const parsed = JSON.parse(raw);
-      if (!parsed || typeof parsed !== "object" || !parsed.profiles) {
+      if (
+        !parsed ||
+        typeof parsed !== "object" ||
+        !parsed.profiles ||
+        typeof parsed.profiles !== "object"
+      ) {
         return { activeProfileKey: null, profiles: {} };
       }
-      return {
-        activeProfileKey: parsed.activeProfileKey || null,
-        profiles: parsed.profiles,
-      };
+
+      const profiles = {};
+      for (const [key, profile] of Object.entries(parsed.profiles)) {
+        if (!key || !profile || typeof profile !== "object") continue;
+        profiles[key] = normalizeProfile(profile, key);
+      }
+
+      const activeProfileKey =
+        typeof parsed.activeProfileKey === "string" &&
+        profiles[parsed.activeProfileKey]
+          ? parsed.activeProfileKey
+          : null;
+      return { activeProfileKey, profiles };
     } catch (error) {
       console.warn("Saved progress could not be loaded.", error);
       return { activeProfileKey: null, profiles: {} };
@@ -108,17 +221,6 @@
 
   function profileKeyFromName(name) {
     return name.trim().toLocaleLowerCase("id-ID").replace(/\s+/g, " ");
-  }
-
-  function createProfile(name) {
-    return {
-      name,
-      score: 0,
-      unlockedLevel: 1,
-      currentLevel: 1,
-      completedLevels: {},
-      createdAt: new Date().toISOString(),
-    };
   }
 
   function persistProfile() {
@@ -167,32 +269,25 @@
   }
 
   function addExtraPassages(openEdges, seed, count) {
-    // Tambahkan beberapa jalur alternatif agar level awal lebih mudah,
-    // tetapi tetap memiliki tata letak labirin yang berbeda.
     const random = seededRandom(seed ^ 0x9e3779b9);
     const closedEdges = [];
 
     for (let r = 0; r < SIZE; r += 1) {
       for (let c = 0; c < SIZE; c += 1) {
         const cell = { r, c };
-
         if (c < SIZE - 1) {
           const right = { r, c: c + 1 };
-          if (!openEdges.has(edgeKey(cell, right))) {
+          if (!openEdges.has(edgeKey(cell, right)))
             closedEdges.push([cell, right]);
-          }
         }
-
         if (r < SIZE - 1) {
           const down = { r: r + 1, c };
-          if (!openEdges.has(edgeKey(cell, down))) {
+          if (!openEdges.has(edgeKey(cell, down)))
             closedEdges.push([cell, down]);
-          }
         }
       }
     }
 
-    // Fisher-Yates shuffle deterministik berdasarkan seed level.
     for (let index = closedEdges.length - 1; index > 0; index -= 1) {
       const swapIndex = Math.floor(random() * (index + 1));
       [closedEdges[index], closedEdges[swapIndex]] = [
@@ -201,38 +296,16 @@
       ];
     }
 
-    closedEdges.slice(0, Math.max(0, count)).forEach(([from, to]) => {
-      addOpenEdge(openEdges, from, to);
-    });
-
+    closedEdges
+      .slice(0, Math.max(0, count))
+      .forEach(([from, to]) => addOpenEdge(openEdges, from, to));
     return openEdges;
   }
 
   function extraPassageCount(level) {
-    // Semakin tinggi level, semakin sedikit jalur alternatif yang dibuka.
     const passagePlan = [
-      20,
-      17,
-      14,
-      11, // Level 1-4: pemanasan
-      8,
-      7,
-      6,
-      5, // Level 5-8: tantangan dasar
-      4,
-      4,
-      3,
-      3,
-      2,
-      2, // Level 9-14: tantangan menengah
-      1,
-      1,
-      0,
-      0,
-      0,
-      0, // Level 15-20: tantangan lanjutan
+      20, 17, 14, 11, 8, 7, 6, 5, 4, 4, 3, 3, 2, 2, 1, 1, 0, 0, 0, 0,
     ];
-
     return passagePlan[level - 1] ?? 0;
   }
 
@@ -258,13 +331,11 @@
         stack.pop();
         continue;
       }
-
       const chosen = candidates[Math.floor(random() * candidates.length)];
       addOpenEdge(openEdges, current, chosen.cell);
       visited.add(cellId(chosen.cell));
       stack.push(chosen.cell);
     }
-
     return openEdges;
   }
 
@@ -277,7 +348,6 @@
     while (queue.length) {
       const current = queue.shift();
       if (cellId(current) === cellId(goal)) break;
-
       for (const direction of DIRECTION_ORDER) {
         const next = getNeighbor(current, direction);
         if (!isInside(next) || !openEdges.has(edgeKey(current, next))) continue;
@@ -326,7 +396,6 @@
   }
 
   function createLevel(level) {
-    // Setiap level memakai seed berbeda sehingga bentuk labirinnya tidak sama.
     const seed = 8147 + level * 7919;
     const openEdges = createMaze(seed);
     addExtraPassages(openEdges, seed + 104729, extraPassageCount(level));
@@ -360,8 +429,15 @@
   function startSession(name) {
     const key = profileKeyFromName(name);
     let profile = state.store.profiles[key];
-    if (!profile) profile = createProfile(name);
-    else profile.name = name;
+
+    if (!profile) {
+      // Username baru selalu mendapatkan profil kosong dan mulai dari level 1.
+      profile = createProfile(name);
+    } else {
+      // Username lama memulihkan level, skor, dan progres miliknya sendiri.
+      profile = normalizeProfile(profile, name);
+      profile.name = name;
+    }
 
     state.profileKey = key;
     state.profile = profile;
@@ -375,15 +451,19 @@
     state.isRunning = false;
     state.stopRequested = false;
 
-    const savedLevel =
-      Number(profile.currentLevel) || Number(profile.unlockedLevel) || 1;
+    const savedLevel = toSafeInteger(profile.currentLevel, 1, 1, TOTAL_LEVELS);
     const selectedLevel = Math.min(
-      Math.max(savedLevel, 1),
-      Math.min(profile.unlockedLevel || 1, TOTAL_LEVELS),
+      savedLevel,
+      toSafeInteger(profile.unlockedLevel, 1, 1, TOTAL_LEVELS),
     );
     loadLevel(selectedLevel);
     updateHeader();
-    dom.gameApp.scrollIntoView({ behavior: "smooth", block: "start" });
+    requestAnimationFrame(() =>
+      dom.gameApp.scrollIntoView({
+        behavior: prefersReducedMotion() ? "auto" : "smooth",
+        block: "start",
+      }),
+    );
   }
 
   function updateHeader() {
@@ -491,14 +571,10 @@
         ].join(";");
 
         cells.push(
-          `<div class="${classes.join(" ")}" style="${style}" aria-label="${labelParts.join(", ")}">
-            <span class="cell-marker">${marker}</span>
-            <span class="cell-coordinate" aria-hidden="true">${cellNumber}</span>
-          </div>`,
+          `<div class="${classes.join(" ")}" style="${style}" aria-label="${labelParts.join(", ")}"><span class="cell-marker">${marker}</span><span class="cell-coordinate" aria-hidden="true">${cellNumber}</span></div>`,
         );
       }
     }
-
     dom.mazeGrid.innerHTML = cells.join("");
   }
 
@@ -546,12 +622,7 @@
         const direction = isRepeat ? null : DIRECTIONS[command.direction];
         const icon = isRepeat ? "fa-repeat" : direction.icon;
         const label = isRepeat ? `Ulangi ×${command.count}` : direction.label;
-        return `<div class="program-block ${isRepeat ? "repeat" : ""}">
-          <span class="block-number">${String(index + 1).padStart(2, "0")}</span>
-          <i class="fa-solid ${icon}" aria-hidden="true"></i>
-          <span>${label}</span>
-          <button type="button" class="remove-block" data-remove-index="${index}" aria-label="Hapus blok ${index + 1}"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
-        </div>`;
+        return `<div class="program-block ${isRepeat ? "repeat" : ""}"><span class="block-number">${String(index + 1).padStart(2, "0")}</span><i class="fa-solid ${icon}" aria-hidden="true"></i><span>${label}</span><button type="button" class="remove-block" data-remove-index="${index}" aria-label="Hapus blok ${index + 1}"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></div>`;
       })
       .join("");
   }
@@ -580,7 +651,8 @@
           isCompleted && !isCurrent
             ? '<i class="fa-solid fa-check level-check" aria-hidden="true"></i>'
             : "";
-        return `<button type="button" class="${classes.join(" ")}" data-level="${level}" ${isLocked ? "disabled" : ""} aria-label="Level ${level}${isLocked ? ", terkunci" : ""}" ${isCurrent ? 'aria-current="step"' : ""}>${label}${check}</button>`;
+        const disabled = isLocked || state.isRunning;
+        return `<button type="button" class="${classes.join(" ")}" data-level="${level}" ${disabled ? "disabled" : ""} aria-label="Level ${level}${isLocked ? ", terkunci" : ""}" ${isCurrent ? 'aria-current="step"' : ""}>${label}${check}</button>`;
       },
     ).join("");
     dom.completedLevelCount.textContent = `${Object.keys(completed).length} / ${TOTAL_LEVELS}`;
@@ -598,6 +670,7 @@
     dom.stopButton.hidden = !running;
     dom.runButton.disabled = controlsLocked || state.commands.length === 0;
     renderProgram();
+    renderLevelGrid();
   }
 
   function showToast(message, type = "info") {
@@ -609,12 +682,19 @@
     requestAnimationFrame(() => dom.toast.classList.add("show"));
     toastTimer = window.setTimeout(
       () => dom.toast.classList.remove("show"),
-      2800,
+      2900,
     );
   }
 
   function addCommand(command) {
     if (state.isRunning || state.isFinished) return;
+    if (state.commands.length >= MAX_COMMANDS) {
+      showToast(
+        `Program dibatasi maksimal ${MAX_COMMANDS} blok agar tetap mudah diperiksa.`,
+        "warning",
+      );
+      return;
+    }
     state.commands.push(command);
     renderProgram();
     dom.runButton.disabled = false;
@@ -662,18 +742,77 @@
     return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
   }
 
-  function scrollToBoard() {
-    if (!dom.mazeGrid) return;
-
-    const prefersReducedMotion =
+  function prefersReducedMotion() {
+    return Boolean(
       window.matchMedia &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    );
+  }
 
-    dom.mazeGrid.scrollIntoView({
-      behavior: prefersReducedMotion ? "auto" : "smooth",
-      block: "center",
-      inline: "nearest",
-    });
+  function scrollToBoard() {
+    const target = $(".board-panel");
+    if (!target) return;
+
+    const performScroll = () => {
+      const headerHeight = dom.siteHeader?.getBoundingClientRect().height || 0;
+      const targetTop =
+        target.getBoundingClientRect().top + window.scrollY - headerHeight - 14;
+      window.scrollTo({
+        top: Math.max(0, targetTop),
+        behavior: prefersReducedMotion() ? "auto" : "smooth",
+      });
+    };
+
+    // Hitung posisi setelah render frame agar target papan sudah stabil.
+    requestAnimationFrame(() => requestAnimationFrame(performScroll));
+  }
+
+  function registerMistake(reason) {
+    if (!state.profile) return;
+    state.profile.mistakesByLevel = state.profile.mistakesByLevel || {};
+    const key = String(state.level);
+    const nextMistakes =
+      toSafeInteger(state.profile.mistakesByLevel[key], 0) + 1;
+
+    if (nextMistakes < PENALTY_AFTER_MISTAKES) {
+      state.profile.mistakesByLevel[key] = nextMistakes;
+      persistProfile();
+      const remaining = PENALTY_AFTER_MISTAKES - nextMistakes;
+      showToast(
+        `${reason} Percobaan salah ${nextMistakes}/${PENALTY_AFTER_MISTAKES}. ${remaining} kali lagi akan ada pengurangan poin.`,
+        "warning",
+      );
+      return;
+    }
+
+    const scoreBefore = toSafeInteger(state.profile.score, 0);
+    const deduction = Math.min(PENALTY_POINTS, scoreBefore);
+    const scoreAfter = Math.max(0, scoreBefore - deduction);
+    state.profile.score = scoreAfter;
+    state.profile.mistakesByLevel[key] = 0;
+    state.profile.totalPenaltyPoints =
+      toSafeInteger(state.profile.totalPenaltyPoints, 0) + deduction;
+    persistProfile();
+    updateHeader();
+    showPenaltyModal({ reason, scoreBefore, deduction, scoreAfter });
+  }
+
+  function showPenaltyModal({ reason, scoreBefore, deduction, scoreAfter }) {
+    dom.penaltyPlayerName.textContent = firstName(state.profile?.name);
+    dom.penaltyScoreBefore.textContent = scoreBefore.toLocaleString("id-ID");
+    dom.penaltyDeduction.textContent = `−${deduction.toLocaleString("id-ID")}`;
+    dom.penaltyScoreAfter.textContent = scoreAfter.toLocaleString("id-ID");
+    dom.penaltyDescription.textContent = `${reason} Ini adalah tiga percobaan yang gagal pada Level ${String(state.level).padStart(2, "0")}. ${deduction > 0 ? `${deduction} poin dikurangi dari total poinmu.` : "Poin tetap 0 karena belum ada poin yang bisa dikurangi."}`;
+    dom.penaltyModal.hidden = false;
+    document.body.classList.add("modal-open");
+    dom.closePenaltyButton.focus();
+  }
+
+  function closePenaltyModal() {
+    if (dom.penaltyModal.hidden) return;
+    dom.penaltyModal.hidden = true;
+    document.body.classList.remove("modal-open");
+    dom.runButton.focus();
   }
 
   async function runProgram() {
@@ -704,8 +843,7 @@
     scrollToBoard();
     setRunningUI(true);
 
-    let stoppedByWall = false;
-    let reachedGoal = false;
+    let failureReason = "";
 
     try {
       for (const direction of sequence) {
@@ -715,11 +853,7 @@
 
         const next = getNeighbor(state.position, direction);
         if (!isInside(next) || !isOpenBetween(state.position, next)) {
-          stoppedByWall = true;
-          showToast(
-            `Milo terhalang! Periksa instruksi ${DIRECTIONS[direction].label} dan susun ulang program.`,
-            "warning",
-          );
+          failureReason = `Milo terhalang pada perintah ${DIRECTIONS[direction].label}. Periksa kembali jalur dan dinding labirin.`;
           break;
         }
 
@@ -744,13 +878,11 @@
           next.r === state.levelData.goal.r &&
           next.c === state.levelData.goal.c
         ) {
-          reachedGoal = true;
-          if (state.collected.size === 3) completeLevel();
-          else
-            showToast(
-              `Peti harta sudah ditemukan, tetapi masih ada ${3 - state.collected.size} koin yang belum diambil. Perbaiki rute programmu.`,
-              "warning",
-            );
+          if (state.collected.size === 3) {
+            completeLevel();
+          } else {
+            failureReason = `Milo sudah menemukan peti harta, tetapi masih ada ${3 - state.collected.size} koin yang belum diambil.`;
+          }
           break;
         }
       }
@@ -759,11 +891,17 @@
         showToast(
           "Program dihentikan. Kamu bisa mengubah instruksi dan mencoba lagi.",
         );
-      } else if (!stoppedByWall && !reachedGoal && !state.isFinished) {
-        showToast(
-          "Program selesai. Milo belum mencapai peti harta. Tambahkan instruksi lalu coba lagi.",
-        );
+      } else if (!state.isFinished) {
+        if (!failureReason)
+          failureReason =
+            "Program selesai, tetapi Milo belum mencapai peti harta karun.";
+        registerMistake(failureReason);
       }
+    } catch (error) {
+      console.error("Program execution failed:", error);
+      registerMistake(
+        "Terjadi kendala saat menjalankan program. Periksa kembali instruksi dan coba lagi.",
+      );
     } finally {
       setRunningUI(false);
       state.stopRequested = false;
@@ -783,17 +921,22 @@
     const efficiencyBonus = Math.max(0, 100 - extraSteps * 10);
     const pointsEarned = isFirstCompletion ? 150 + 100 + efficiencyBonus : 0;
 
-    state.profile.score = Number(state.profile.score || 0) + pointsEarned;
+    state.profile.score = toSafeInteger(state.profile.score, 0) + pointsEarned;
     state.profile.completedLevels = state.profile.completedLevels || {};
     state.profile.completedLevels[levelKey] = Math.max(
-      Number(state.profile.completedLevels[levelKey] || 0),
+      toSafeInteger(state.profile.completedLevels[levelKey], 0),
       pointsEarned,
     );
     state.profile.unlockedLevel = Math.min(
       TOTAL_LEVELS,
-      Math.max(Number(state.profile.unlockedLevel || 1), state.level + 1),
+      Math.max(
+        toSafeInteger(state.profile.unlockedLevel, 1, 1, TOTAL_LEVELS),
+        state.level + 1,
+      ),
     );
     state.profile.currentLevel = Math.min(TOTAL_LEVELS, state.level + 1);
+    state.profile.mistakesByLevel = state.profile.mistakesByLevel || {};
+    state.profile.mistakesByLevel[levelKey] = 0;
     persistProfile();
 
     updateHeader();
@@ -807,14 +950,11 @@
       state.level < TOTAL_LEVELS
         ? 'Level Berikutnya <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>'
         : 'Petualangan Selesai <i class="fa-solid fa-trophy" aria-hidden="true"></i>';
-    if (!isFirstCompletion) {
-      $(".completion-description").textContent =
-        "Kamu menuntaskan level ini lagi. Coba susun rute yang lebih ringkas untuk melatih logikamu.";
-    } else {
-      $(".completion-description").textContent =
-        "Kamu berhasil mengumpulkan semua koin dan menemukan peti harta karun.";
-    }
+    $(".completion-description").textContent = isFirstCompletion
+      ? "Kamu berhasil mengumpulkan semua koin dan menemukan peti harta karun."
+      : "Kamu menuntaskan level ini lagi. Coba susun rute yang lebih ringkas untuk melatih logikamu.";
     dom.completionModal.hidden = false;
+    document.body.classList.add("modal-open");
     dom.nextLevelButton.focus();
   }
 
@@ -840,17 +980,31 @@
     showToast("Level diulang. Susun kembali langkah terbaikmu.");
   }
 
+  function closeCompletionModal() {
+    dom.completionModal.hidden = true;
+    document.body.classList.remove("modal-open");
+  }
+
   function switchPlayer() {
     if (state.isRunning) return;
-    dom.completionModal.hidden = true;
+    closeCompletionModal();
+    closePenaltyModal();
+    // currentLevel dan skor sudah disimpan pada profil pemain yang sedang aktif.
+    persistProfile();
     dom.gameApp.hidden = true;
     dom.headerRight.hidden = true;
     dom.welcomeScreen.hidden = false;
     dom.playerNameInput.value = "";
     dom.startButtonText.textContent = "Mulai Petualangan";
     dom.startError.hidden = true;
-    dom.playerNameInput.focus();
-    dom.welcomeScreen.scrollIntoView({ behavior: "smooth", block: "start" });
+    dom.welcomeScreen.scrollIntoView({
+      behavior: prefersReducedMotion() ? "auto" : "smooth",
+      block: "start",
+    });
+    window.setTimeout(
+      () => dom.playerNameInput.focus(),
+      prefersReducedMotion() ? 0 : 250,
+    );
   }
 
   function initializeEventListeners() {
@@ -867,6 +1021,7 @@
       if (name.length > 20) {
         dom.startError.textContent = "Username maksimal 20 karakter.";
         dom.startError.hidden = false;
+        dom.playerNameInput.focus();
         return;
       }
       dom.startError.hidden = true;
@@ -878,7 +1033,6 @@
         addCommand({ type: "move", direction: button.dataset.direction }),
       );
     });
-
     $$("[data-repeat]").forEach((button) => {
       button.addEventListener("click", () =>
         addRepeat(Number(button.dataset.repeat)),
@@ -892,12 +1046,15 @@
 
     dom.levelGrid.addEventListener("click", (event) => {
       const button = event.target.closest("[data-level]");
-      if (!button || button.disabled) return;
+      if (!button || button.disabled || state.isRunning) return;
       loadLevel(Number(button.dataset.level));
       showToast(
         `Level ${String(state.level).padStart(2, "0")} siap dimainkan.`,
       );
-      dom.gameApp.scrollIntoView({ behavior: "smooth", block: "start" });
+      dom.gameApp.scrollIntoView({
+        behavior: prefersReducedMotion() ? "auto" : "smooth",
+        block: "start",
+      });
     });
 
     dom.undoButton.addEventListener("click", () => {
@@ -922,9 +1079,13 @@
     dom.changePlayerButton.addEventListener("click", switchPlayer);
 
     dom.nextLevelButton.addEventListener("click", () => {
-      dom.completionModal.hidden = true;
+      closeCompletionModal();
       if (state.level < TOTAL_LEVELS) {
         loadLevel(state.level + 1);
+        dom.gameApp.scrollIntoView({
+          behavior: prefersReducedMotion() ? "auto" : "smooth",
+          block: "start",
+        });
       } else {
         loadLevel(TOTAL_LEVELS);
         showToast(
@@ -933,17 +1094,28 @@
         );
       }
     });
+
     dom.closeCompletionButton.addEventListener("click", () => {
-      dom.completionModal.hidden = true;
-      dom.levelGrid.scrollIntoView({ behavior: "smooth", block: "center" });
+      closeCompletionModal();
+      dom.levelGrid.scrollIntoView({
+        behavior: prefersReducedMotion() ? "auto" : "smooth",
+        block: "center",
+      });
     });
+
     dom.completionModal.addEventListener("click", (event) => {
-      if (event.target === dom.completionModal)
-        dom.completionModal.hidden = true;
+      if (event.target === dom.completionModal) closeCompletionModal();
     });
+    dom.penaltyModal.addEventListener("click", (event) => {
+      if (event.target === dom.penaltyModal) closePenaltyModal();
+    });
+    dom.closePenaltyButton.addEventListener("click", closePenaltyModal);
+
     document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape" && !dom.completionModal.hidden)
-        dom.completionModal.hidden = true;
+      if (event.key === "Escape") {
+        if (!dom.penaltyModal.hidden) closePenaltyModal();
+        else if (!dom.completionModal.hidden) closeCompletionModal();
+      }
     });
   }
 
